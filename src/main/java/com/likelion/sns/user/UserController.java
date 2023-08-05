@@ -1,6 +1,8 @@
 package com.likelion.sns.user;
 
+import com.likelion.sns.jwt.TokenUtils;
 import com.likelion.sns.user.dto.MessageResponseDto;
+import com.likelion.sns.user.dto.TokenResponseDto;
 import com.likelion.sns.user.dto.UserLoginDto;
 import com.likelion.sns.user.dto.UserRegisterDto;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ public class UserController {
     private final UserService service;
     private final CustomUserDetailsManager manager;
     private final PasswordEncoder passwordEncoder;
+    private final TokenUtils tokenUtils;
 
     /**
      * POST /register
@@ -50,7 +53,7 @@ public class UserController {
      * 로그인
      */
     @PostMapping("/login")
-    public ResponseEntity<MessageResponseDto> login(
+    public ResponseEntity<TokenResponseDto> login(
             @Valid @RequestBody UserLoginDto dto
     ) {
         log.info("#log# 사용자 [{}] 로그인 요청 받음", dto.getUsername());
@@ -60,8 +63,9 @@ public class UserController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다.");
         }
         log.info("#log# 사용자 [{}] 로그인 성공", dto.getUsername());
-        MessageResponseDto response = new MessageResponseDto();
+        TokenResponseDto response = new TokenResponseDto();
         response.setMessage("로그인이 완료되었습니다.");
+        response.setToken(tokenUtils.generateToken(userDetails));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
