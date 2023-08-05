@@ -9,6 +9,8 @@ import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Optional;
+
 @RequiredArgsConstructor
 @Slf4j
 @Service
@@ -39,7 +41,12 @@ public class CustomUserDetailsManager implements UserDetailsManager {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         log.info("#log# 사용자 [{}] 정보 조회 시도", username);
-        throw new UnsupportedOperationException();
+        Optional<UserEntity> optionalUser = userRepository.findByUsername(username);
+        if (optionalUser.isEmpty()) {
+            log.warn("#log# 사용자 [{}] 정보 없음", username);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 사용자를 찾을 수 없습니다.");
+        }
+        return CustomUserDetails.fromEntity(optionalUser.get());
     }
 
     @Override

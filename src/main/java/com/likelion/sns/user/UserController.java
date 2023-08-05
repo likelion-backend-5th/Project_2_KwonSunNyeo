@@ -1,12 +1,15 @@
 package com.likelion.sns.user;
 
 import com.likelion.sns.user.dto.MessageResponseDto;
+import com.likelion.sns.user.dto.UserLoginDto;
 import com.likelion.sns.user.dto.UserRegisterDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 public class UserController {
     private final UserService service;
+    private final CustomUserDetailsManager manager;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * POST /register
@@ -37,6 +42,26 @@ public class UserController {
         log.info("#log# 사용자 [{}] 등록 성공", dto.getUsername());
         MessageResponseDto response = new MessageResponseDto();
         response.setMessage("회원가입이 완료되었습니다.");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    /**
+     * POST /login
+     * 로그인
+     */
+    @PostMapping("/login")
+    public ResponseEntity<MessageResponseDto> login(
+            @Valid @RequestBody UserLoginDto dto
+    ) {
+        log.info("#log# 사용자 [{}] 로그인 요청 받음", dto.getUsername());
+        UserDetails userDetails = manager.loadUserByUsername(dto.getUsername());
+        if (!passwordEncoder.matches(dto.getPassword(), userDetails.getPassword())) {
+            log.warn("#log# 사용자 [{}] 로그인 실패. 비밀번호 불일치", dto.getUsername());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다.");
+        }
+        log.info("#log# 사용자 [{}] 로그인 성공", dto.getUsername());
+        MessageResponseDto response = new MessageResponseDto();
+        response.setMessage("로그인이 완료되었습니다.");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
