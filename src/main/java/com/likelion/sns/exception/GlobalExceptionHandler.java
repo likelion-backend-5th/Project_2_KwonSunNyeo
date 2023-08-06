@@ -28,4 +28,11 @@ public class GlobalExceptionHandler {
         response.setMessage(e.getReason());
         return new ResponseEntity<>(response, e.getStatusCode());
     }
+    // 개발자의 요청에 발생하는 예외
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<MessageResponseDto> handleCustomException(CustomException e) {
+        MessageResponseDto response = new MessageResponseDto();
+        response.setMessage(e.getExceptionCode().getMessage());
+        return new ResponseEntity<>(response, e.getExceptionCode().getHttpStatus());
+    }
 }

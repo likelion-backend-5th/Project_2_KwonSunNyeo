@@ -1,5 +1,7 @@
 package com.likelion.sns.user;
 
+import com.likelion.sns.exception.CustomException;
+import com.likelion.sns.exception.CustomExceptionCode;
 import com.likelion.sns.jwt.TokenUtils;
 import com.likelion.sns.user.dto.MessageResponseDto;
 import com.likelion.sns.user.dto.TokenResponseDto;
@@ -15,7 +17,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -38,7 +39,7 @@ public class UserController {
         log.info("#log# 사용자 [{}] 등록 요청 받음", dto.getUsername());
         if (!dto.getPassword().equals(dto.getPasswordCheck())) {
             log.warn("#log# 사용자 [{}] 등록 실패. 비밀번호 불일치", dto.getUsername());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다.");
+            throw new CustomException(CustomExceptionCode.PASSWORD_CHECK_ERROR);
         }
         service.register(dto);
         log.info("#log# 사용자 [{}] 등록 성공", dto.getUsername());
@@ -59,7 +60,7 @@ public class UserController {
         UserDetails userDetails = manager.loadUserByUsername(dto.getUsername());
         if (!passwordEncoder.matches(dto.getPassword(), userDetails.getPassword())) {
             log.warn("#log# 사용자 [{}] 로그인 실패. 비밀번호 불일치", dto.getUsername());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "비밀번호가 일치하지 않습니다.");
+            throw new CustomException(CustomExceptionCode.PASSWORD_CHECK_ERROR);
         }
         log.info("#log# 사용자 [{}] 로그인 성공", dto.getUsername());
         TokenResponseDto response = new TokenResponseDto();

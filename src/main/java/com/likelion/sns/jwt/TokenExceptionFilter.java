@@ -1,6 +1,7 @@
 package com.likelion.sns.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.likelion.sns.exception.CustomException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,9 +28,9 @@ public class TokenExceptionFilter extends OncePerRequestFilter {
             log.info("#log# 필터 체인을 통과하는 요청 처리 시작");
             filterChain.doFilter(request, response);
             log.info("#log# 필터 체인을 통과하는 요청 처리 완료");
-        } catch (RuntimeException e) {
-            log.warn("#log# 필터 체인에서 예외 발생 [{}]", e.getMessage());
-            setResponse(HttpStatus.UNAUTHORIZED, response, e);
+        } catch (CustomException e) {
+            log.warn("#log# 필터 체인에서 예외 발생 [{}]", e.getExceptionCode().getMessage());
+            setResponse(e.getExceptionCode().getHttpStatus(), response, e);
         }
     }
 
