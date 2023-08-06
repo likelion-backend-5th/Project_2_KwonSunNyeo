@@ -7,8 +7,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -52,6 +58,34 @@ public class CustomUserDetailsManager implements UserDetailsManager {
     @Override
     public void updateUser(UserDetails user) {
         log.info("#log# 사용자 [{}] 정보 업데이트 시도", user.getUsername());
+    }
+
+    public void updateProfileImage(String username, MultipartFile image) {
+        log.info("#log# 사용자 [{}] 프로필 이미지 업데이트 시도", username);
+        if (image == null || image.isEmpty()) {
+            log.warn("#log# 사용자 [{}] 프로필 이미지 없음", username);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "프로필 이미지를 찾을 수 없습니다.");
+        }
+        String imageDir = String.format("user_images/%s", username);
+        try {
+            String imageFormat = Files.probeContentType(Paths.get(image.getOriginalFilename()));
+            if (!imageFormat.startsWith("image")) {
+                log.warn("#log# 사용자 [{}] 프로필 이미지 업데이트 실패. 지원하지 않는 이미지 파일 형식", username);
+                throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 이미지 파일 형식입니다.");
+            }
+            Path dirPath = Paths.get(imageDir);
+            if (!Files.exists(dirPath)) {
+                Files.createDirectories(dirPath);
+            }
+            String originalFilename = image.getOriginalFilename();
+            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String newFilename = "profile" + extension;
+            Path targetLocation = dirPath.resolve(newFilename);
+            Files.copy(image.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.error("#log# 사용자 [{}] 프로필 이미지 업데이트 실패", username);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "서버에서 문제가 발생했습니다.");
+        }
     }
 
     @Override
