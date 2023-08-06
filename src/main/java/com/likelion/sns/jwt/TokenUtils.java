@@ -1,6 +1,7 @@
 package com.likelion.sns.jwt;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -39,5 +40,32 @@ public class TokenUtils {
                 .setClaims(jwtClaims)
                 .signWith(signingKey)
                 .compact();
+    }
+
+    public boolean isValidatedToken(String token) {
+        try {
+            jwtParser.parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            log.warn("#log# JWT 유효성 검사 실패. 서명 또는 구조 검증");
+            return false;
+        }
+    }
+
+    public boolean isExpiredToken(String token) {
+        try {
+            jwtParser.parseClaimsJws(token);
+            return false;
+        } catch (ExpiredJwtException e) {
+            return true;
+        } catch (Exception e) {
+            log.warn("#log# JWT 유효성 검사 실패. 만료 검증");
+            return false;
+        }
+    }
+
+    public Claims parseClaims(String token) {
+        log.info("#log# JWT 클레임 파싱");
+        return jwtParser.parseClaimsJws(token).getBody();
     }
 }
