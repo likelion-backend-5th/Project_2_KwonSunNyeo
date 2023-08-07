@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -36,6 +37,11 @@ public class TokenFilter extends OncePerRequestFilter {
         String requestURI = request.getRequestURI();
         if ("/users/register".equals(requestURI) || "/users/login".equals(requestURI)) {
             log.warn("#log# /users/register 또는 /users/login 접근");
+            filterChain.doFilter(request, response);
+            return;
+        }
+        else if ("/articles".equals(requestURI) && HttpMethod.GET.matches(request.getMethod())) {
+            log.warn("#log# GET /articles 접근");
             filterChain.doFilter(request, response);
             return;
         }

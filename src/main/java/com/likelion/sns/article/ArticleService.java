@@ -1,5 +1,6 @@
 package com.likelion.sns.article;
 
+import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
 import com.likelion.sns.exception.CustomException;
 import com.likelion.sns.exception.CustomExceptionCode;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -84,5 +86,23 @@ public class ArticleService {
             log.error("#log# 사용자 [{}]의 피드 이미지 등록 실패", username);
             throw new CustomException(CustomExceptionCode.INTERNAL_ERROR);
         }
+    }
+
+    /**
+     * 피드 전체 목록 조회
+     */
+    public List<ArticleListResponseDto> getAllArticles() {
+        List<ArticleEntity> articles = articleRepository.findAll();
+        if (articles.isEmpty()) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
+        }
+        return articles.stream().map(article -> {
+            String mainImage = article.getArticleImages().isEmpty() ? "defaultImage.png" : article.getArticleImages().get(0).getImageUrl();
+            Long articleId = article.getId();
+            Long userId = article.getUser().getId();
+            String username = article.getUser().getUsername();
+            return new ArticleListResponseDto(
+                    articleId, userId, username, article.getTitle(), mainImage);
+        }).collect(Collectors.toList());
     }
 }
