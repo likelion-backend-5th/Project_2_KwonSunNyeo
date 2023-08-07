@@ -83,4 +83,21 @@ public class ArticleController {
         response.setMessage("피드 수정이 완료되었습니다.");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+    /**
+     * DELETE /{articleId}
+     * 피드 삭제
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<MessageResponseDto> deleteArticle(
+            @PathVariable Long id,
+            Authentication auth
+    ) {
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 삭제 요청 받음", auth.getName(), id);
+        service.deleteArticle(id, auth.getName());
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 삭제 성공", auth.getName(), id);
+        MessageResponseDto response = new MessageResponseDto();
+        response.setMessage("피드 삭제가 완료되었습니다.");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 }

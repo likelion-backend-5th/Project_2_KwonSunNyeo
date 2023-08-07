@@ -213,4 +213,21 @@ public class ArticleService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return postArticleImage(username, image, 1);
     }
+
+    /**
+     * 피드 삭제
+     */
+    @Transactional
+    public void deleteArticle(
+            Long id,
+            String username
+    ) {
+        Optional<ArticleEntity> optionalArticleEntity = articleRepository.findByIdAndDeletedAtIsNull(id);
+        if (optionalArticleEntity.isEmpty()) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
+        }
+        ArticleEntity articleEntity = optionalArticleEntity.get();
+        articleEntity.setDeletedAt(LocalDateTime.now());
+        log.info("#log# 사용자 [{}]의 피드 아이디 [{}] 정보 삭제 완료", username, id);
+    }
 }
