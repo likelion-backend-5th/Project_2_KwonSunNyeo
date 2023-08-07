@@ -3,12 +3,15 @@ package com.likelion.sns.article;
 import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
 import com.likelion.sns.article.dto.ArticleResponseDto;
+import com.likelion.sns.article.dto.ArticleUpdateDto;
 import com.likelion.sns.exception.CustomException;
 import com.likelion.sns.exception.CustomExceptionCode;
 import com.likelion.sns.user.UserEntity;
 import com.likelion.sns.user.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -127,5 +131,86 @@ public class ArticleService {
                 .username(articleEntity.getUser().getUsername())
                 .imageUrls(imageUrls)
                 .build();
+    }
+
+    /**
+     * 피드 수정
+     */
+    @Transactional
+    public void updateArticle(
+            Long id,
+            ArticleUpdateDto dto,
+            String username,
+            List<MultipartFile> imagesToAdd
+    ) {
+        Optional<ArticleEntity> optionalArticleEntity = articleRepository.findByIdAndDeletedAtIsNull(id);
+        if (optionalArticleEntity.isEmpty()) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
+        }
+        ArticleEntity articleEntity = optionalArticleEntity.get();
+        if (!articleEntity.getUser().getUsername().equals(username)) {
+            throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
+        }
+        articleEntity.setTitle(dto.getTitle());
+        articleEntity.setContent(dto.getContent());
+        if (dto.getImageIdsToRemove() != null && !dto.getImageIdsToRemove().isEmpty()) {
+            removeImages(dto.getImageIdsToRemove(), articleEntity);
+        }
+        if (dto.getImagesToAdd() != null && !dto.getImagesToAdd().isEmpty()) {
+            addImages(dto.getImagesToAdd(), articleEntity);
+        }
+    }
+
+    private void removeImages(
+            List<Long> imageIdsToRemove,
+            ArticleEntity articleEntity
+    ) {
+        for (Long imageId : imageIdsToRemove) {
+            Optional<ArticleImageEntity> optionalImageEntity = articleImageRepository.findById(imageId);
+            if (optionalImageEntity.isEmpty()) {
+                throw new CustomException(CustomExceptionCode.NOT_FOUND_IMAGE);
+            }
+            ArticleImageEntity imageEntity = optionalImageEntity.get();
+            if (imageEntity.getImageUrl() == null) {
+                log.warn("#log# 이미지 [{}] 경로 없음", imageId);
+                continue;
+            }
+            try {
+                Path path = Paths.get(imageEntity.getImageUrl());
+                if (Files.exists(path)) {
+                    log.info("#log# 파일 경로 [{}] 확인. 삭제 시도", path);
+                    Files.delete(path);
+                    log.info("#log# 피드 [{}]의 이미지 아이디 [{}] 삭제 완료", articleEntity.getTitle(), imageEntity.getImageUrl());
+                } else {
+                    log.warn("#log# 피드 [{}]의 이미지 아이디 [{}] 정보 없음", articleEntity.getTitle(), imageEntity.getImageUrl());
+                }
+            } catch (IOException e) {
+                log.error("#log# 피드 [{}]의 이미지 [{}] 삭제 실패: {}", articleEntity.getTitle(), imageEntity.getImageUrl(), e.getMessage());
+                throw new CustomException(CustomExceptionCode.INTERNAL_ERROR);
+            }
+            log.info("#log# 데이터베이스에서 이미지 [{}] 삭제 시도", imageId);
+            articleImageRepository.deleteById(imageId);
+            log.info("#log# 데이터베이스에서 이미지 [{}] 삭제 완료", imageId);
+        }
+    }
+
+    private void addImages(
+            List<MultipartFile> imagesToAdd,
+            ArticleEntity articleEntity
+    ) {
+        for (MultipartFile file : imagesToAdd) {
+            String imageUrl = saveImage(file);
+            ArticleImageEntity imageEntity = new ArticleImageEntity();
+            imageEntity.setImageUrl(imageUrl);
+            imageEntity.setArticle(articleEntity);
+            articleImageRepository.save(imageEntity);
+        }
+    }
+
+    private String saveImage(
+            MultipartFile image
+    ) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return postArticleImage(username, image, 1);
     }
 }

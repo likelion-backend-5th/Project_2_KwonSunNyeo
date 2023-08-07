@@ -3,11 +3,13 @@ package com.likelion.sns.article;
 import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
 import com.likelion.sns.article.dto.ArticleResponseDto;
+import com.likelion.sns.article.dto.ArticleUpdateDto;
 import com.likelion.sns.user.dto.MessageResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -60,5 +62,25 @@ public class ArticleController {
     ) {
         ArticleResponseDto article = service.getArticle(id);
         return new ResponseEntity<>(article, HttpStatus.OK);
+    }
+
+    /**
+     * PUT /{articleId}
+     * 피드 수정
+     */
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MessageResponseDto> updateArticle(
+            @PathVariable Long id,
+            @Valid @ModelAttribute ArticleUpdateDto dto,
+            @RequestParam(value = "imagesToAdd", required = false)
+            List<MultipartFile> imagesToAdd,
+            Authentication auth
+    ) {
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 요청 받음", auth.getName(), id);
+        service.updateArticle(id, dto, auth.getName(), imagesToAdd);
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 성공", auth.getName(), id);
+        MessageResponseDto response = new MessageResponseDto();
+        response.setMessage("피드 수정이 완료되었습니다.");
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

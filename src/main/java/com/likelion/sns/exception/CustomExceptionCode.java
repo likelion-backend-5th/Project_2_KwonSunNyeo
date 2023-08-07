@@ -19,10 +19,15 @@ public enum CustomExceptionCode {
     INVALID_JWT(HttpStatus.UNAUTHORIZED, "유효하지 않은 JWT입니다."),
     EXPIRED_JWT(HttpStatus.UNAUTHORIZED, "만료된 JWT입니다."),
     /*
+     * 403
+     */
+    UNAUTHORIZED_ACCESS(HttpStatus.FORBIDDEN, "잘못된 접근입니다."),
+    /*
      * 404
      */
     NOT_FOUND_USER(HttpStatus.NOT_FOUND, "해당 사용자를 찾을 수 없습니다."),
     NOT_FOUND_ARTICLE(HttpStatus.NOT_FOUND, "해당 게시글을 찾을 수 없습니다."),
+    NOT_FOUND_IMAGE(HttpStatus.NOT_FOUND, "해당 이미지를 찾을 수 없습니다."),
     /*
      * 409
      */
