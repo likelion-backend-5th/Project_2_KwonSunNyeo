@@ -2,6 +2,7 @@ package com.likelion.sns.article;
 
 import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
+import com.likelion.sns.article.dto.ArticleResponseDto;
 import com.likelion.sns.user.dto.MessageResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -47,5 +48,17 @@ public class ArticleController {
     public ResponseEntity<List<ArticleListResponseDto>> getAllArticles() {
         List<ArticleListResponseDto> articles = service.getAllArticles();
         return new ResponseEntity<>(articles, HttpStatus.OK);
+    }
+
+    /**
+     * GET /{articleId}
+     * 피드 단일 조회
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<ArticleResponseDto> getArticle(
+            @PathVariable Long id
+    ) {
+        ArticleResponseDto article = service.getArticle(id);
+        return new ResponseEntity<>(article, HttpStatus.OK);
     }
 }

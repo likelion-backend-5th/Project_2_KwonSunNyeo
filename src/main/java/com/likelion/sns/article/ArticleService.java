@@ -2,6 +2,7 @@ package com.likelion.sns.article;
 
 import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
+import com.likelion.sns.article.dto.ArticleResponseDto;
 import com.likelion.sns.exception.CustomException;
 import com.likelion.sns.exception.CustomExceptionCode;
 import com.likelion.sns.user.UserEntity;
@@ -17,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -104,5 +106,26 @@ public class ArticleService {
             return new ArticleListResponseDto(
                     articleId, userId, username, article.getTitle(), mainImage);
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 피드 단일 조회
+     */
+    public ArticleResponseDto getArticle(Long id) {
+        Optional<ArticleEntity> OptionalArticle = articleRepository.findByIdAndDeletedAtIsNull(id);
+        if (OptionalArticle.isEmpty()) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
+        }
+        ArticleEntity articleEntity = OptionalArticle.get();
+        List<String> imageUrls = articleEntity.getArticleImages().stream()
+                .map(ArticleImageEntity::getImageUrl)
+                .collect(Collectors.toList());
+        return ArticleResponseDto.builder()
+                .id(articleEntity.getId())
+                .title(articleEntity.getTitle())
+                .content(articleEntity.getContent())
+                .username(articleEntity.getUser().getUsername())
+                .imageUrls(imageUrls)
+                .build();
     }
 }
