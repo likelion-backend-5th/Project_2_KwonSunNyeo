@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -79,9 +80,14 @@ public class UserController {
     )
     public ResponseEntity<MessageResponseDto> updateProfileImage(
             @PathVariable("username") String username,
-            @RequestParam("image") MultipartFile profileImage
+            @RequestParam("image") MultipartFile profileImage,
+            Authentication auth
     ) {
         log.info("#log# 사용자 [{}] 프로필 이미지 업데이트 요청 받음", username);
+        if (!username.equals(auth.getName())) {
+            log.warn("#log# 사용자 [{}] 및 토큰의 사용자 [{}] 불일치", username, auth.getName());
+            throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
+        }
         manager.updateProfileImage(username, profileImage);
         log.info("#log# 사용자 [{}] 프로필 이미지 업데이트 성공", username);
         MessageResponseDto response = new MessageResponseDto();

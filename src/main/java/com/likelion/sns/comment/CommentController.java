@@ -1,6 +1,8 @@
 package com.likelion.sns.comment;
 
 import com.likelion.sns.comment.dto.CommentRequestDto;
+import com.likelion.sns.exception.CustomException;
+import com.likelion.sns.exception.CustomExceptionCode;
 import com.likelion.sns.user.dto.MessageResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +48,14 @@ public class CommentController {
             Authentication auth
     ) {
         log.info("#log# 사용자 [{}]에 의해 댓글 아이디 [{}] 수정 요청 받음", auth.getName(), commentId);
-        service.updateComment(commentId, dto.getContent(), auth.getName());
+        try {
+            service.updateComment(commentId, dto.getContent(), auth.getName());
+        } catch (CustomException e) {
+            if (e.getExceptionCode() == CustomExceptionCode.UNAUTHORIZED_ACCESS) {
+                log.warn("#log# 사용자 [{}] 및 댓글의 작성자 불일치", auth.getName());
+                throw e;
+            }
+        }
         log.info("#log# 사용자 [{}]에 의해 댓글 아이디 [{}] 수정 성공", auth.getName(), commentId);
         MessageResponseDto response = new MessageResponseDto();
         response.setMessage("댓글 수정이 완료되었습니다.");
@@ -63,7 +72,14 @@ public class CommentController {
             Authentication auth
     ) {
         log.info("#log# 사용자 [{}]에 의해 댓글 아이디 [{}] 삭제 요청 받음", auth.getName(), commentId);
-        service.deleteComment(commentId, auth.getName());
+        try {
+            service.deleteComment(commentId, auth.getName());
+        } catch (CustomException e) {
+            if (e.getExceptionCode() == CustomExceptionCode.UNAUTHORIZED_ACCESS) {
+                log.warn("#log# 사용자 [{}] 및 댓글의 작성자 불일치", auth.getName());
+                throw e;
+            }
+        }
         log.info("#log# 사용자 [{}]에 의해 댓글 아이디 [{}] 삭제 성공", auth.getName(), commentId);
         MessageResponseDto response = new MessageResponseDto();
         response.setMessage("댓글 삭제가 완료되었습니다.");
