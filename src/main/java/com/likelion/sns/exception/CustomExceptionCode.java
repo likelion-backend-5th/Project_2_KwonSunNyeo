@@ -12,6 +12,7 @@ public enum CustomExceptionCode {
      */
     PASSWORD_CHECK_ERROR(HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다."),
     PROFILE_IMAGE_EMPTY(HttpStatus.BAD_REQUEST, "프로필 이미지를 찾을 수 없습니다."),
+    NOT_LIKED_YET(HttpStatus.BAD_REQUEST, "아직 좋아요를 누르지 않은 상태입니다."),
     /*
      * 401
      */
@@ -33,6 +34,7 @@ public enum CustomExceptionCode {
      * 409
      */
     ALREADY_EXIST_USER(HttpStatus.CONFLICT, "이미 존재하는 사용자 이름입니다."),
+    ALREADY_LIKED(HttpStatus.CONFLICT, "이미 좋아요를 누른 상태입니다."),
     /*
      * 415
      */

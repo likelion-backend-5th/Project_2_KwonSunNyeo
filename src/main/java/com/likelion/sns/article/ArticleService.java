@@ -4,6 +4,7 @@ import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
 import com.likelion.sns.article.dto.ArticleResponseDto;
 import com.likelion.sns.article.dto.ArticleUpdateDto;
+import com.likelion.sns.article.like.ArticleLikeService;
 import com.likelion.sns.comment.CommentRepository;
 import com.likelion.sns.comment.dto.CommentResponseDto;
 import com.likelion.sns.exception.CustomException;
@@ -35,6 +36,7 @@ public class ArticleService {
     private final ArticleImageRepository articleImageRepository;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
+    private final ArticleLikeService articleLikeService;
 
     /**
      * 피드 등록
@@ -84,6 +86,7 @@ public class ArticleService {
             Long userId = article.getUser().getId();
             String username = article.getUser().getUsername();
             List<CommentResponseDto> comments = getCommentsForArticle(article.getId());
+            Long likeCount = articleLikeService.countLikesForArticle(article.getId());
             return ArticleListResponseDto.builder()
                     .articleId(article.getId())
                     .userId(userId)
@@ -91,6 +94,7 @@ public class ArticleService {
                     .title(article.getTitle())
                     .mainImage(mainImage)
                     .comments(comments)
+                    .likeCount(likeCount)
                     .build();
         }).collect(Collectors.toList());
     }
@@ -108,6 +112,7 @@ public class ArticleService {
                 .map(ArticleImageEntity::getImageUrl)
                 .collect(Collectors.toList());
         List<CommentResponseDto> comments = getCommentsForArticle(articleId);
+        Long likeCount = articleLikeService.countLikesForArticle(articleId);
         return ArticleResponseDto.builder()
                 .articleId(articleEntity.getId())
                 .title(articleEntity.getTitle())
@@ -115,6 +120,7 @@ public class ArticleService {
                 .username(articleEntity.getUser().getUsername())
                 .imageUrls(imageUrls)
                 .comments(comments)
+                .likeCount(likeCount)
                 .build();
     }
 

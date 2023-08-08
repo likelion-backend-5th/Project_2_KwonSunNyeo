@@ -15,4 +15,5 @@ public class ArticleListResponseDto {
     private String title;
     private String mainImage;
     private List<CommentResponseDto> comments;
+    private Long likeCount;
 }

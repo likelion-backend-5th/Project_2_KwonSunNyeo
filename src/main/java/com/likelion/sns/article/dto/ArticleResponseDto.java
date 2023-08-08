@@ -10,9 +10,10 @@ import java.util.List;
 @Data
 public class ArticleResponseDto {
     private Long articleId;
+    private String username;
     private String title;
     private String content;
-    private String username;
     private List<String> imageUrls;
     private List<CommentResponseDto> comments;
+    private Long likeCount;
 }
