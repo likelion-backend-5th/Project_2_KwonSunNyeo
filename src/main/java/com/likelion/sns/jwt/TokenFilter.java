@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 @RequiredArgsConstructor
@@ -39,6 +42,11 @@ public class TokenFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+        else if ("/articles".equals(requestURI) && HttpMethod.GET.matches(request.getMethod())) {
+            log.warn("#log# GET /articles 접근");
+            filterChain.doFilter(request, response);
+            return;
+        }
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             log.warn("#log# JWT 정보 없음");
             throw new CustomException(CustomExceptionCode.EMPTY_JWT);
@@ -53,13 +61,21 @@ public class TokenFilter extends OncePerRequestFilter {
                     throw new CustomException(CustomExceptionCode.INVALID_JWT);
                 }
             } else {
-                String username = tokenUtils.parseClaims(token).getSubject();
+                String tokenUsername = tokenUtils.parseClaims(token).getSubject();
+                String encodedRequestUsername = request.getRequestURI().split("/")[2];
+                String requestUsername = URLDecoder.decode(encodedRequestUsername, StandardCharsets.UTF_8.name());
+                log.info("#log# 토큰에서 가져온 사용자 이름 [{}]", tokenUsername);
+                log.info("#log# 요청 URI에서 가져온 사용자 이름 [{}]", requestUsername);
+                if (!tokenUsername.equals(requestUsername)) {
+                    log.warn("#log# 인증 실패. 다른 사용자의 JWT");
+                    throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
+                }
                 SecurityContext context = SecurityContextHolder.createEmptyContext();
-                log.info("#log# 사용자 [{}] 인증 성공. 유효한 JWT", username);
+                log.info("#log# 사용자 [{}] 인증 성공. 유효한 JWT", tokenUsername);
                 AbstractAuthenticationToken authenticationToken
                         = new UsernamePasswordAuthenticationToken(
                         CustomUserDetails.builder()
-                                .username(username)
+                                .username(tokenUsername)
                                 .build(), token, new ArrayList<>()
                 );
                 context.setAuthentication(authenticationToken);

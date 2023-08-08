@@ -1,7 +1,10 @@
 package com.likelion.sns.user;
 
+import com.likelion.sns.article.ArticleEntity;
 import jakarta.persistence.*;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 @Entity
@@ -20,4 +23,7 @@ public class UserEntity {
     private String profileImage;
     private String email;
     private String phone;
+
+    @OneToMany(mappedBy = "user")
+    private List<ArticleEntity> articles;
 }
