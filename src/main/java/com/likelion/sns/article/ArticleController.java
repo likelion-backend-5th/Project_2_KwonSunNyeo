@@ -36,7 +36,7 @@ public class ArticleController {
     ) {
         log.info("#log# 사용자 [{}]에 의해 피드 [{}] 등록 요청 받음", auth.getName(), dto.getTitle());
         service.postArticle(dto, images);
-        log.info("#log# 사용자 [{}]에 의해 피드 [{}] 등록 성공", auth.getName(), dto.getTitle());;
+        log.info("#log# 사용자 [{}]에 의해 피드 [{}] 등록 성공", auth.getName(), dto.getTitle());
         MessageResponseDto response = new MessageResponseDto();
         response.setMessage("피드 등록이 완료되었습니다.");
         return new ResponseEntity<>(response, HttpStatus.CREATED);

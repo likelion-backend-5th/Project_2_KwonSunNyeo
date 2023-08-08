@@ -4,6 +4,9 @@ import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
 import com.likelion.sns.article.dto.ArticleResponseDto;
 import com.likelion.sns.article.dto.ArticleUpdateDto;
+import com.likelion.sns.article.like.ArticleLikeService;
+import com.likelion.sns.comment.CommentRepository;
+import com.likelion.sns.comment.dto.CommentResponseDto;
 import com.likelion.sns.exception.CustomException;
 import com.likelion.sns.exception.CustomExceptionCode;
 import com.likelion.sns.user.UserEntity;
@@ -32,10 +35,13 @@ public class ArticleService {
     private final ArticleRepository articleRepository;
     private final ArticleImageRepository articleImageRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
+    private final ArticleLikeService articleLikeService;
 
     /**
      * 피드 등록
      */
+    @Transactional
     public void postArticle(
             ArticleRegisterDto dto,
             List<MultipartFile> images
@@ -56,7 +62,7 @@ public class ArticleService {
         if (images != null) {
             int index = 1;
             for (MultipartFile image : images) {
-                String imageUrl = postArticleImage(image, index);
+                String imageUrl = saveImage(image, index);
                 ArticleImageEntity imageEntity = new ArticleImageEntity();
                 imageEntity.setArticle(savedArticle);
                 imageEntity.setImageUrl(imageUrl);
@@ -68,54 +74,28 @@ public class ArticleService {
     }
 
     /**
-     * 피드 이미지 등록
-     */
-    private String postArticleImage(
-            MultipartFile image,
-            int index
-    ) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        String imageDir = String.format("article_images/%s", username);
-        try {
-            String imageFormat = Files.probeContentType(Paths.get(image.getOriginalFilename()));
-            if (!imageFormat.startsWith("image")) {
-                log.warn("#log# 사용자 [{}]의 피드 이미지 등록 실패. 지원하지 않는 이미지 파일 형식", username);
-                throw new CustomException(CustomExceptionCode.UNSUPPORTED_IMAGE_FORMAT);
-            }
-            Path dirPath = Paths.get(imageDir);
-            if (!Files.exists(dirPath)) {
-                Files.createDirectories(dirPath);
-            }
-            String extension = imageFormat.split("/")[1];
-            while (Files.exists(dirPath.resolve(String.format("image(%d).%s", index, extension)))) {
-                index++;
-            }
-            String newFilename = String.format("image(%d).%s", index, extension);
-            Path targetLocation = dirPath.resolve(newFilename);
-            Files.copy(image.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            log.info("#log# 사용자 [{}]의 피드 이미지 [{}] 등록 완료", username, targetLocation);
-            return targetLocation.toString();
-        } catch (IOException e) {
-            log.error("#log# 사용자 [{}]의 피드 이미지 등록 실패", username);
-            throw new CustomException(CustomExceptionCode.INTERNAL_ERROR);
-        }
-    }
-
-    /**
      * 피드 전체 목록 조회
      */
     public List<ArticleListResponseDto> getAllArticles() {
-        List<ArticleEntity> articles = articleRepository.findAll();
+        List<ArticleEntity> articles = articleRepository.findByDeletedAtIsNull();
         if (articles.isEmpty()) {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
         }
         return articles.stream().map(article -> {
             String mainImage = article.getArticleImages().isEmpty() ? "defaultImage.png" : article.getArticleImages().get(0).getImageUrl();
-            Long articleId = article.getId();
             Long userId = article.getUser().getId();
             String username = article.getUser().getUsername();
-            return new ArticleListResponseDto(
-                    articleId, userId, username, article.getTitle(), mainImage);
+            List<CommentResponseDto> comments = getCommentsForArticle(article.getId());
+            Long likeCount = articleLikeService.countLikesForArticle(article.getId());
+            return ArticleListResponseDto.builder()
+                    .articleId(article.getId())
+                    .userId(userId)
+                    .username(username)
+                    .title(article.getTitle())
+                    .mainImage(mainImage)
+                    .comments(comments)
+                    .likeCount(likeCount)
+                    .build();
         }).collect(Collectors.toList());
     }
 
@@ -131,13 +111,31 @@ public class ArticleService {
         List<String> imageUrls = articleEntity.getArticleImages().stream()
                 .map(ArticleImageEntity::getImageUrl)
                 .collect(Collectors.toList());
+        List<CommentResponseDto> comments = getCommentsForArticle(articleId);
+        Long likeCount = articleLikeService.countLikesForArticle(articleId);
         return ArticleResponseDto.builder()
-                .id(articleEntity.getId())
+                .articleId(articleEntity.getId())
                 .title(articleEntity.getTitle())
                 .content(articleEntity.getContent())
                 .username(articleEntity.getUser().getUsername())
                 .imageUrls(imageUrls)
+                .comments(comments)
+                .likeCount(likeCount)
                 .build();
+    }
+
+    /**
+     * 피드 댓글 조회
+     */
+    private List<CommentResponseDto> getCommentsForArticle(Long articleId) {
+        return commentRepository.findByArticleIdAndDeletedAtIsNull(articleId).stream()
+                .map(comment -> CommentResponseDto.builder()
+                        .commentId(comment.getId())
+                        .articleId(articleId)
+                        .username(comment.getUser().getUsername())
+                        .content(comment.getContent())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     /**
@@ -221,11 +219,38 @@ public class ArticleService {
         return images.size();
     }
 
+    /**
+     * 피드 이미지 저장
+     */
     private String saveImage(
             MultipartFile image,
             int index
     ) {
-        return postArticleImage(image, index);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String imageDir = String.format("article_images/%s", username);
+        try {
+            String imageFormat = Files.probeContentType(Paths.get(image.getOriginalFilename()));
+            if (!imageFormat.startsWith("image")) {
+                log.warn("#log# 사용자 [{}]의 피드 이미지 등록 실패. 지원하지 않는 이미지 파일 형식", username);
+                throw new CustomException(CustomExceptionCode.UNSUPPORTED_IMAGE_FORMAT);
+            }
+            Path dirPath = Paths.get(imageDir);
+            if (!Files.exists(dirPath)) {
+                Files.createDirectories(dirPath);
+            }
+            String extension = imageFormat.split("/")[1];
+            while (Files.exists(dirPath.resolve(String.format("image(%d).%s", index, extension)))) {
+                index++;
+            }
+            String newFilename = String.format("image(%d).%s", index, extension);
+            Path targetLocation = dirPath.resolve(newFilename);
+            Files.copy(image.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            log.info("#log# 사용자 [{}]의 피드 이미지 [{}] 등록 완료", username, targetLocation);
+            return targetLocation.toString();
+        } catch (IOException e) {
+            log.error("#log# 사용자 [{}]의 피드 이미지 등록 실패", username);
+            throw new CustomException(CustomExceptionCode.INTERNAL_ERROR);
+        }
     }
 
     /**

@@ -1,14 +1,19 @@
 package com.likelion.sns.article.dto;
 
-import lombok.AllArgsConstructor;
+import com.likelion.sns.comment.dto.CommentResponseDto;
+import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
+@Builder
 @Data
-@AllArgsConstructor
 public class ArticleListResponseDto {
     private Long articleId;
     private Long userId;
     private String username;
     private String title;
     private String mainImage;
+    private List<CommentResponseDto> comments;
+    private Long likeCount;
 }
