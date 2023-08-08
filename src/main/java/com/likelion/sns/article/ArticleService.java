@@ -4,6 +4,8 @@ import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
 import com.likelion.sns.article.dto.ArticleResponseDto;
 import com.likelion.sns.article.dto.ArticleUpdateDto;
+import com.likelion.sns.comment.CommentRepository;
+import com.likelion.sns.comment.dto.CommentResponseDto;
 import com.likelion.sns.exception.CustomException;
 import com.likelion.sns.exception.CustomExceptionCode;
 import com.likelion.sns.user.UserEntity;
@@ -32,6 +34,7 @@ public class ArticleService {
     private final ArticleRepository articleRepository;
     private final ArticleImageRepository articleImageRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
 
     /**
      * 피드 등록
@@ -131,13 +134,29 @@ public class ArticleService {
         List<String> imageUrls = articleEntity.getArticleImages().stream()
                 .map(ArticleImageEntity::getImageUrl)
                 .collect(Collectors.toList());
+        List<CommentResponseDto> comments = getCommentsForArticle(articleId);
         return ArticleResponseDto.builder()
-                .id(articleEntity.getId())
+                .articleId(articleEntity.getId())
                 .title(articleEntity.getTitle())
                 .content(articleEntity.getContent())
                 .username(articleEntity.getUser().getUsername())
                 .imageUrls(imageUrls)
+                .comments(comments)
                 .build();
+    }
+
+    /**
+     * 피드 댓글 조회
+     */
+    private List<CommentResponseDto> getCommentsForArticle(Long articleId) {
+        return commentRepository.findByArticleIdAndDeletedFalse(articleId).stream()
+                .map(comment -> CommentResponseDto.builder()
+                        .commentId(comment.getId())
+                        .articleId(articleId)
+                        .username(comment.getUser().getUsername())
+                        .content(comment.getContent())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     /**
