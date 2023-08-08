@@ -4,6 +4,8 @@ import com.likelion.sns.article.dto.ArticleListResponseDto;
 import com.likelion.sns.article.dto.ArticleRegisterDto;
 import com.likelion.sns.article.dto.ArticleResponseDto;
 import com.likelion.sns.article.dto.ArticleUpdateDto;
+import com.likelion.sns.exception.CustomException;
+import com.likelion.sns.exception.CustomExceptionCode;
 import com.likelion.sns.user.dto.MessageResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,10 +32,15 @@ public class ArticleController {
      */
     @PostMapping("{username}")
     public ResponseEntity<MessageResponseDto> postArticle(
+            @PathVariable("username") String username,
             @Valid ArticleRegisterDto dto,
             @RequestParam(required = false) List<MultipartFile> images,
             Authentication auth
     ) {
+        if (!username.equals(auth.getName())) {
+            log.warn("#log# 사용자 [{}] 및 토큰의 사용자 [{}] 불일치", username, auth.getName());
+            throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
+        }
         log.info("#log# 사용자 [{}]에 의해 피드 [{}] 등록 요청 받음", auth.getName(), dto.getTitle());
         service.postArticle(dto, images);
         log.info("#log# 사용자 [{}]에 의해 피드 [{}] 등록 성공", auth.getName(), dto.getTitle());
@@ -58,9 +65,17 @@ public class ArticleController {
      */
     @GetMapping("{username}/{articleId}")
     public ResponseEntity<ArticleResponseDto> getArticle(
-            @PathVariable Long articleId
+            @PathVariable("username") String username,
+            @PathVariable Long articleId,
+            Authentication auth
     ) {
+        log.info("#log# 사용자 [{}] 피드 아이디 [{}] 조회 요청 받음", username, articleId);
+        if (!username.equals(auth.getName())) {
+            log.warn("#log# 사용자 [{}] 및 토큰의 사용자 [{}] 불일치", username, auth.getName());
+            throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
+        }
         ArticleResponseDto article = service.getArticle(articleId);
+        log.info("#log# 사용자 [{}] 피드 아이디 [{}] 조회 성공", username, articleId);
         return new ResponseEntity<>(article, HttpStatus.OK);
     }
 
@@ -70,12 +85,17 @@ public class ArticleController {
      */
     @PutMapping(value = "{username}/{articleId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MessageResponseDto> updateArticle(
+            @PathVariable("username") String username,
             @PathVariable Long articleId,
             @Valid @ModelAttribute ArticleUpdateDto dto,
             @RequestParam(value = "imagesToAdd", required = false)
             List<MultipartFile> imagesToAdd,
             Authentication auth
     ) {
+        if (!username.equals(auth.getName())) {
+            log.warn("#log# 사용자 [{}] 및 토큰의 사용자 [{}] 불일치", username, auth.getName());
+            throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
+        }
         log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 요청 받음", auth.getName(), articleId);
         service.updateArticle(articleId, dto, auth.getName(), imagesToAdd);
         log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 성공", auth.getName(), articleId);
@@ -90,9 +110,14 @@ public class ArticleController {
      */
     @DeleteMapping("/{username}/{articleId}")
     public ResponseEntity<MessageResponseDto> deleteArticle(
+            @PathVariable("username") String username,
             @PathVariable Long articleId,
             Authentication auth
     ) {
+        if (!username.equals(auth.getName())) {
+            log.warn("#log# 사용자 [{}] 및 토큰의 사용자 [{}] 불일치", username, auth.getName());
+            throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
+        }
         log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 삭제 요청 받음", auth.getName(), articleId);
         service.deleteArticle(articleId, auth.getName());
         log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 삭제 성공", auth.getName(), articleId);

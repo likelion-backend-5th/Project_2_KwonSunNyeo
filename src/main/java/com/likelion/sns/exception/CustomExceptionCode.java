@@ -23,6 +23,7 @@ public enum CustomExceptionCode {
      * 403
      */
     UNAUTHORIZED_ACCESS(HttpStatus.FORBIDDEN, "잘못된 접근입니다."),
+    CANNOT_LIKE_OWN_ARTICLE(HttpStatus.FORBIDDEN, "자신의 피드에는 좋아요를 할 수 없습니다."),
     /*
      * 404
      */
@@ -34,7 +35,6 @@ public enum CustomExceptionCode {
      * 409
      */
     ALREADY_EXIST_USER(HttpStatus.CONFLICT, "이미 존재하는 사용자 이름입니다."),
-    ALREADY_LIKED(HttpStatus.CONFLICT, "이미 좋아요를 누른 상태입니다."),
     /*
      * 415
      */
