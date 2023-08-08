@@ -87,6 +87,9 @@ public class ArticleService {
                 Files.createDirectories(dirPath);
             }
             String extension = imageFormat.split("/")[1];
+            while (Files.exists(dirPath.resolve(String.format("image(%d).%s", index, extension)))) {
+                index++;
+            }
             String newFilename = String.format("image(%d).%s", index, extension);
             Path targetLocation = dirPath.resolve(newFilename);
             Files.copy(image.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
@@ -160,8 +163,8 @@ public class ArticleService {
         if (dto.getImageIdsToRemove() != null && !dto.getImageIdsToRemove().isEmpty()) {
             removeImages(dto.getImageIdsToRemove(), articleEntity);
         }
-        if (dto.getImagesToAdd() != null && !dto.getImagesToAdd().isEmpty()) {
-            addImages(dto.getImagesToAdd(), articleEntity);
+        if (imagesToAdd != null && !imagesToAdd.isEmpty()) {
+            addImages(imagesToAdd, articleEntity);
         }
     }
 
@@ -202,8 +205,10 @@ public class ArticleService {
             List<MultipartFile> imagesToAdd,
             ArticleEntity articleEntity
     ) {
+        int lastIndex = getLastImageIndex(articleEntity);
         for (MultipartFile file : imagesToAdd) {
-            String imageUrl = saveImage(file);
+            lastIndex++;
+            String imageUrl = saveImage(file, lastIndex);
             ArticleImageEntity imageEntity = new ArticleImageEntity();
             imageEntity.setImageUrl(imageUrl);
             imageEntity.setArticle(articleEntity);
@@ -211,10 +216,16 @@ public class ArticleService {
         }
     }
 
+    private int getLastImageIndex(ArticleEntity articleEntity) {
+        List<ArticleImageEntity> images = articleImageRepository.findAllByArticle(articleEntity);
+        return images.size();
+    }
+
     private String saveImage(
-            MultipartFile image
+            MultipartFile image,
+            int index
     ) {
-        return postArticleImage(image, 1);
+        return postArticleImage(image, index);
     }
 
     /**
