@@ -114,11 +114,17 @@ public class ArticleService {
         }
         return articles.stream().map(article -> {
             String mainImage = article.getArticleImages().isEmpty() ? "defaultImage.png" : article.getArticleImages().get(0).getImageUrl();
-            Long articleId = article.getId();
             Long userId = article.getUser().getId();
             String username = article.getUser().getUsername();
-            return new ArticleListResponseDto(
-                    articleId, userId, username, article.getTitle(), mainImage);
+            List<CommentResponseDto> comments = getCommentsForArticle(article.getId());
+            return ArticleListResponseDto.builder()
+                    .articleId(article.getId())
+                    .userId(userId)
+                    .username(username)
+                    .title(article.getTitle())
+                    .mainImage(mainImage)
+                    .comments(comments)
+                    .build();
         }).collect(Collectors.toList());
     }
 

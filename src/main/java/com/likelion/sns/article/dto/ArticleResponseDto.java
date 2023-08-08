@@ -6,8 +6,8 @@ import lombok.Data;
 
 import java.util.List;
 
-@Data
 @Builder
+@Data
 public class ArticleResponseDto {
     private Long articleId;
     private String title;
