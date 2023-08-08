@@ -39,6 +39,7 @@ public class ArticleService {
     /**
      * 피드 등록
      */
+    @Transactional
     public void postArticle(
             ArticleRegisterDto dto,
             List<MultipartFile> images
@@ -59,7 +60,7 @@ public class ArticleService {
         if (images != null) {
             int index = 1;
             for (MultipartFile image : images) {
-                String imageUrl = postArticleImage(image, index);
+                String imageUrl = saveImage(image, index);
                 ArticleImageEntity imageEntity = new ArticleImageEntity();
                 imageEntity.setArticle(savedArticle);
                 imageEntity.setImageUrl(imageUrl);
@@ -67,40 +68,6 @@ public class ArticleService {
                 log.info("#log# 피드 [{}]의 이미지 [{}] 등록 완료", savedArticle.getTitle(), imageUrl);
                 index++;
             }
-        }
-    }
-
-    /**
-     * 피드 이미지 등록
-     */
-    private String postArticleImage(
-            MultipartFile image,
-            int index
-    ) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        String imageDir = String.format("article_images/%s", username);
-        try {
-            String imageFormat = Files.probeContentType(Paths.get(image.getOriginalFilename()));
-            if (!imageFormat.startsWith("image")) {
-                log.warn("#log# 사용자 [{}]의 피드 이미지 등록 실패. 지원하지 않는 이미지 파일 형식", username);
-                throw new CustomException(CustomExceptionCode.UNSUPPORTED_IMAGE_FORMAT);
-            }
-            Path dirPath = Paths.get(imageDir);
-            if (!Files.exists(dirPath)) {
-                Files.createDirectories(dirPath);
-            }
-            String extension = imageFormat.split("/")[1];
-            while (Files.exists(dirPath.resolve(String.format("image(%d).%s", index, extension)))) {
-                index++;
-            }
-            String newFilename = String.format("image(%d).%s", index, extension);
-            Path targetLocation = dirPath.resolve(newFilename);
-            Files.copy(image.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-            log.info("#log# 사용자 [{}]의 피드 이미지 [{}] 등록 완료", username, targetLocation);
-            return targetLocation.toString();
-        } catch (IOException e) {
-            log.error("#log# 사용자 [{}]의 피드 이미지 등록 실패", username);
-            throw new CustomException(CustomExceptionCode.INTERNAL_ERROR);
         }
     }
 
@@ -246,11 +213,38 @@ public class ArticleService {
         return images.size();
     }
 
+    /**
+     * 피드 이미지 저장
+     */
     private String saveImage(
             MultipartFile image,
             int index
     ) {
-        return postArticleImage(image, index);
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        String imageDir = String.format("article_images/%s", username);
+        try {
+            String imageFormat = Files.probeContentType(Paths.get(image.getOriginalFilename()));
+            if (!imageFormat.startsWith("image")) {
+                log.warn("#log# 사용자 [{}]의 피드 이미지 등록 실패. 지원하지 않는 이미지 파일 형식", username);
+                throw new CustomException(CustomExceptionCode.UNSUPPORTED_IMAGE_FORMAT);
+            }
+            Path dirPath = Paths.get(imageDir);
+            if (!Files.exists(dirPath)) {
+                Files.createDirectories(dirPath);
+            }
+            String extension = imageFormat.split("/")[1];
+            while (Files.exists(dirPath.resolve(String.format("image(%d).%s", index, extension)))) {
+                index++;
+            }
+            String newFilename = String.format("image(%d).%s", index, extension);
+            Path targetLocation = dirPath.resolve(newFilename);
+            Files.copy(image.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            log.info("#log# 사용자 [{}]의 피드 이미지 [{}] 등록 완료", username, targetLocation);
+            return targetLocation.toString();
+        } catch (IOException e) {
+            log.error("#log# 사용자 [{}]의 피드 이미지 등록 실패", username);
+            throw new CustomException(CustomExceptionCode.INTERNAL_ERROR);
+        }
     }
 
     /**
