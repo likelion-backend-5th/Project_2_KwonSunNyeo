@@ -38,10 +38,14 @@ public class ArticleService {
      */
     public void postArticle(
             ArticleRegisterDto dto,
-            String username,
             List<MultipartFile> images
     ) {
-        UserEntity user = userRepository.findByUsername(username).get();
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Optional<UserEntity> userEntityOptional = userRepository.findByUsername(username);
+        if (userEntityOptional.isEmpty()) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_USER);
+        }
+        UserEntity user = userEntityOptional.get();
         ArticleEntity article = new ArticleEntity();
         article.setTitle(dto.getTitle());
         article.setContent(dto.getContent());
@@ -52,7 +56,7 @@ public class ArticleService {
         if (images != null) {
             int index = 1;
             for (MultipartFile image : images) {
-                String imageUrl = postArticleImage(username, image, index);
+                String imageUrl = postArticleImage(image, index);
                 ArticleImageEntity imageEntity = new ArticleImageEntity();
                 imageEntity.setArticle(savedArticle);
                 imageEntity.setImageUrl(imageUrl);
@@ -67,10 +71,10 @@ public class ArticleService {
      * 피드 이미지 등록
      */
     private String postArticleImage(
-            String username,
             MultipartFile image,
             int index
     ) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         String imageDir = String.format("article_images/%s", username);
         try {
             String imageFormat = Files.probeContentType(Paths.get(image.getOriginalFilename()));
@@ -115,8 +119,8 @@ public class ArticleService {
     /**
      * 피드 단일 조회
      */
-    public ArticleResponseDto getArticle(Long id) {
-        Optional<ArticleEntity> OptionalArticle = articleRepository.findByIdAndDeletedAtIsNull(id);
+    public ArticleResponseDto getArticle(Long articleId) {
+        Optional<ArticleEntity> OptionalArticle = articleRepository.findByIdAndDeletedAtIsNull(articleId);
         if (OptionalArticle.isEmpty()) {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
         }
@@ -138,12 +142,12 @@ public class ArticleService {
      */
     @Transactional
     public void updateArticle(
-            Long id,
+            Long articleId,
             ArticleUpdateDto dto,
             String username,
             List<MultipartFile> imagesToAdd
     ) {
-        Optional<ArticleEntity> optionalArticleEntity = articleRepository.findByIdAndDeletedAtIsNull(id);
+        Optional<ArticleEntity> optionalArticleEntity = articleRepository.findByIdAndDeletedAtIsNull(articleId);
         if (optionalArticleEntity.isEmpty()) {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
         }
@@ -172,25 +176,25 @@ public class ArticleService {
             }
             ArticleImageEntity imageEntity = optionalImageEntity.get();
             if (imageEntity.getImageUrl() == null) {
-                log.warn("#log# 이미지 [{}] 경로 없음", imageId);
+                log.warn("#log# 이미지 아이디 [{}] 경로 없음", imageId);
                 continue;
             }
             try {
                 Path path = Paths.get(imageEntity.getImageUrl());
                 if (Files.exists(path)) {
-                    log.info("#log# 파일 경로 [{}] 확인. 삭제 시도", path);
+                    log.info("#log# 이미지 경로 [{}] 확인. 삭제 시도", path);
                     Files.delete(path);
-                    log.info("#log# 피드 [{}]의 이미지 아이디 [{}] 삭제 완료", articleEntity.getTitle(), imageEntity.getImageUrl());
+                    log.info("#log# 피드 [{}]의 이미지 [{}] 삭제 완료", articleEntity.getTitle(), imageEntity.getImageUrl());
                 } else {
-                    log.warn("#log# 피드 [{}]의 이미지 아이디 [{}] 정보 없음", articleEntity.getTitle(), imageEntity.getImageUrl());
+                    log.warn("#log# 피드 [{}]의 이미지 [{}] 정보 없음", articleEntity.getTitle(), imageEntity.getImageUrl());
                 }
             } catch (IOException e) {
                 log.error("#log# 피드 [{}]의 이미지 [{}] 삭제 실패: {}", articleEntity.getTitle(), imageEntity.getImageUrl(), e.getMessage());
                 throw new CustomException(CustomExceptionCode.INTERNAL_ERROR);
             }
-            log.info("#log# 데이터베이스에서 이미지 [{}] 삭제 시도", imageId);
+            log.info("#log# 데이터베이스에서 이미지 아이디 [{}] 삭제 시도", imageId);
             articleImageRepository.deleteById(imageId);
-            log.info("#log# 데이터베이스에서 이미지 [{}] 삭제 완료", imageId);
+            log.info("#log# 데이터베이스에서 이미지 아이디 [{}] 삭제 완료", imageId);
         }
     }
 
@@ -210,8 +214,7 @@ public class ArticleService {
     private String saveImage(
             MultipartFile image
     ) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return postArticleImage(username, image, 1);
+        return postArticleImage(image, 1);
     }
 
     /**
@@ -219,15 +222,15 @@ public class ArticleService {
      */
     @Transactional
     public void deleteArticle(
-            Long id,
+            Long articleId,
             String username
     ) {
-        Optional<ArticleEntity> optionalArticleEntity = articleRepository.findByIdAndDeletedAtIsNull(id);
+        Optional<ArticleEntity> optionalArticleEntity = articleRepository.findByIdAndDeletedAtIsNull(articleId);
         if (optionalArticleEntity.isEmpty()) {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
         }
         ArticleEntity articleEntity = optionalArticleEntity.get();
         articleEntity.setDeletedAt(LocalDateTime.now());
-        log.info("#log# 사용자 [{}]의 피드 아이디 [{}] 정보 삭제 완료", username, id);
+        log.info("#log# 사용자 [{}]의 피드 아이디 [{}] 정보 삭제 완료. 데이터베이스 존재", username, articleId);
     }
 }

@@ -35,7 +35,7 @@ public class ArticleController {
             Authentication auth
     ) {
         log.info("#log# 사용자 [{}]에 의해 피드 [{}] 등록 요청 받음", auth.getName(), dto.getTitle());
-        service.postArticle(dto, auth.getName(), images);
+        service.postArticle(dto, images);
         log.info("#log# 사용자 [{}]에 의해 피드 [{}] 등록 성공", auth.getName(), dto.getTitle());;
         MessageResponseDto response = new MessageResponseDto();
         response.setMessage("피드 등록이 완료되었습니다.");
@@ -53,49 +53,49 @@ public class ArticleController {
     }
 
     /**
-     * GET /{articleId}
+     * GET /{username}/{articleId}
      * 피드 단일 조회
      */
-    @GetMapping("/{id}")
+    @GetMapping("{username}/{articleId}")
     public ResponseEntity<ArticleResponseDto> getArticle(
-            @PathVariable Long id
+            @PathVariable Long articleId
     ) {
-        ArticleResponseDto article = service.getArticle(id);
+        ArticleResponseDto article = service.getArticle(articleId);
         return new ResponseEntity<>(article, HttpStatus.OK);
     }
 
     /**
-     * PUT /{articleId}
+     * PUT /{username}/{articleId}
      * 피드 수정
      */
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "{username}/{articleId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MessageResponseDto> updateArticle(
-            @PathVariable Long id,
+            @PathVariable Long articleId,
             @Valid @ModelAttribute ArticleUpdateDto dto,
             @RequestParam(value = "imagesToAdd", required = false)
             List<MultipartFile> imagesToAdd,
             Authentication auth
     ) {
-        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 요청 받음", auth.getName(), id);
-        service.updateArticle(id, dto, auth.getName(), imagesToAdd);
-        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 성공", auth.getName(), id);
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 요청 받음", auth.getName(), articleId);
+        service.updateArticle(articleId, dto, auth.getName(), imagesToAdd);
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 수정 성공", auth.getName(), articleId);
         MessageResponseDto response = new MessageResponseDto();
         response.setMessage("피드 수정이 완료되었습니다.");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     /**
-     * DELETE /{articleId}
+     * DELETE /{username}/{articleId}
      * 피드 삭제
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{username}/{articleId}")
     public ResponseEntity<MessageResponseDto> deleteArticle(
-            @PathVariable Long id,
+            @PathVariable Long articleId,
             Authentication auth
     ) {
-        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 삭제 요청 받음", auth.getName(), id);
-        service.deleteArticle(id, auth.getName());
-        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 삭제 성공", auth.getName(), id);
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 삭제 요청 받음", auth.getName(), articleId);
+        service.deleteArticle(articleId, auth.getName());
+        log.info("#log# 사용자 [{}]에 의해 피드 아이디 [{}] 정보 삭제 성공", auth.getName(), articleId);
         MessageResponseDto response = new MessageResponseDto();
         response.setMessage("피드 삭제가 완료되었습니다.");
         return new ResponseEntity<>(response, HttpStatus.OK);
