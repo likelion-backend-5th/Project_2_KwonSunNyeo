@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -41,6 +42,9 @@ public class CommentService {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
         }
         ArticleEntity article = articleEntityOptional.get();
+        if (article.getDeletedAt() != null) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
+        }
         CommentEntity comment = new CommentEntity();
         comment.setContent(dto.getContent());
         comment.setUser(user);
@@ -63,6 +67,9 @@ public class CommentService {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_COMMENT);
         }
         CommentEntity commentEntity = optionalCommentEntity.get();
+        if (commentEntity.getArticle().getDeletedAt() != null) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
+        }
         if (!commentEntity.getUser().getUsername().equals(username)) {
             throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
         }
@@ -83,10 +90,13 @@ public class CommentService {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_COMMENT);
         }
         CommentEntity commentEntity = optionalCommentEntity.get();
+        if (commentEntity.getArticle().getDeletedAt() != null) {
+            throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
+        }
         if (!commentEntity.getUser().getUsername().equals(username)) {
             throw new CustomException(CustomExceptionCode.UNAUTHORIZED_ACCESS);
         }
-        commentEntity.setDeleted(true);
+        commentEntity.setDeletedAt(LocalDateTime.now());
         log.info("#log# 사용자 [{}]의 피드 댓글 아이디 [{}] 정보 삭제 완료. 데이터베이스 존재", username, commentId);
     }
 }

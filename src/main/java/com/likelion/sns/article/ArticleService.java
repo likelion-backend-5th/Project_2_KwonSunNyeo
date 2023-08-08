@@ -75,7 +75,7 @@ public class ArticleService {
      * 피드 전체 목록 조회
      */
     public List<ArticleListResponseDto> getAllArticles() {
-        List<ArticleEntity> articles = articleRepository.findAll();
+        List<ArticleEntity> articles = articleRepository.findByDeletedAtIsNull();
         if (articles.isEmpty()) {
             throw new CustomException(CustomExceptionCode.NOT_FOUND_ARTICLE);
         }
@@ -122,7 +122,7 @@ public class ArticleService {
      * 피드 댓글 조회
      */
     private List<CommentResponseDto> getCommentsForArticle(Long articleId) {
-        return commentRepository.findByArticleIdAndDeletedFalse(articleId).stream()
+        return commentRepository.findByArticleIdAndDeletedAtIsNull(articleId).stream()
                 .map(comment -> CommentResponseDto.builder()
                         .commentId(comment.getId())
                         .articleId(articleId)
